@@ -1,0 +1,311 @@
+CHARMM Element source/adumb/cmds.src $Revision: 1.2 $
+C.##IF ADUMB (adumb)
+      SUBROUTINE UMBAN(COMLYN,COMLEN)
+C-----------------------------------------------------------------------
+C     Process the UMBRELLA command.
+C
+C-----------------------------------------------------------------------
+C:::##INCLUDE '~/charmm_fcm/impnon.fcm'
+C..##IF VAX CONVEX IRIS HPUX IRIS GNU CSPP OS2 GWS CRAY ALPHA
+      IMPLICIT NONE
+C..##ENDIF
+C-----------------------------------------------------------------------
+C-----------------------------------------------------------------------
+C:::##INCLUDE '~/charmm_fcm/dimens.fcm'
+      INTEGER LARGE,MEDIUM,SMALL,REDUCE
+C..##IF QUANTA
+C..##ELIF T3D
+C..##ELSE
+      PARAMETER (LARGE=60120, MEDIUM=25140, SMALL=6120)
+C..##ENDIF
+      PARAMETER (REDUCE=15000)
+      INTEGER SIZE
+C..##IF XLARGE
+C..##ELIF LARGE
+C..##ELIF MEDIUM
+      PARAMETER (SIZE=MEDIUM)
+C..##ELIF REDUCE
+C..##ELIF SMALL
+C..##ELIF XSMALL
+C..##ENDIF
+C..##IF MMFF
+      integer MAXDEFI
+      parameter(MAXDEFI=250)
+      INTEGER NAME0,NAMEQ0,NRES0,KRES0
+      PARAMETER (NAME0=4,NAMEQ0=10,NRES0=4,KRES0=4)
+      integer MaxAtN
+      parameter (MaxAtN=55)
+      INTEGER MAXAUX
+      PARAMETER (MAXAUX = 10)
+C..##ENDIF
+      INTEGER MAXCSP, MAXHSET
+      PARAMETER (MAXHSET = 20)
+C..##IF REDUCE
+C..##ELSE
+      PARAMETER (MAXCSP = 500)
+C..##ENDIF
+      INTEGER MXCMSZ
+C..##IF IBM IBMRS CRAY INTEL IBMSP T3D REDUCE
+C..##ELSE
+      PARAMETER (MXCMSZ = 5000)
+C..##ENDIF
+      INTEGER CHRSIZ
+      PARAMETER (CHRSIZ = SIZE)
+      INTEGER MAXATB
+C..##IF REDUCE
+C..##ELIF QUANTA
+C..##ELSE
+      PARAMETER (MAXATB = 200)
+C..##ENDIF
+      INTEGER MAXVEC
+C..##IFN VECTOR PARVECT
+      PARAMETER (MAXVEC = 10)
+C..##ELIF LARGE XLARGE
+C..##ELIF MEDIUM
+C..##ELIF SMALL REDUCE
+C..##ELIF XSMALL
+C..##ELSE
+C..##ENDIF
+      INTEGER IATBMX
+      PARAMETER (IATBMX = 8)
+      INTEGER MAXHB
+C..##IF LARGE XLARGE
+C..##ELIF MEDIUM
+      PARAMETER (MAXHB = 8000)
+C..##ELIF SMALL
+C..##ELIF REDUCE XSMALL
+C..##ELSE
+C..##ENDIF
+      INTEGER MAXTRN,MAXSYM
+C..##IFN NOIMAGES
+      PARAMETER (MAXTRN = 5000)
+      PARAMETER (MAXSYM = 192)
+C..##ELSE
+C..##ENDIF
+C..##IF LONEPAIR (lonepair_max)
+      INTEGER MAXLP,MAXLPH
+C...##IF REDUCE
+C...##ELSE
+      PARAMETER (MAXLP  = 2000)
+      PARAMETER (MAXLPH = 4000)
+C...##ENDIF
+C..##ENDIF (lonepair_max)
+      INTEGER NOEMAX,NOEMX2
+C..##IF REDUCE
+C..##ELSE
+      PARAMETER (NOEMAX = 4000)
+      PARAMETER (NOEMX2 = 8000)
+C..##ENDIF
+      INTEGER MAXATC, MAXCB, MAXCH, MAXCI, MAXCP, MAXCT, MAXITC, MAXNBF
+C..##IF REDUCE
+C..##ELIF MMFF CFF
+      PARAMETER (MAXATC = 500, MAXCB = 1500, MAXCH = 3200, MAXCI = 600,
+     &           MAXCP  = 3000,MAXCT = 15500,MAXITC = 200, MAXNBF=1000)
+C..##ELIF YAMMP
+C..##ELSE
+C..##ENDIF
+      INTEGER MAXCN
+      PARAMETER (MAXCN = MAXITC*(MAXITC+1)/2)
+      INTEGER MAXA, MAXAIM, MAXB, MAXT, MAXP
+      INTEGER MAXIMP, MAXNB, MAXPAD, MAXRES
+      INTEGER MAXSEG, MAXGRP
+C..##IF LARGE XLARGE
+C..##ELIF MEDIUM
+      PARAMETER (MAXA = SIZE, MAXB = SIZE, MAXT = SIZE,
+     &           MAXP = 2*SIZE)
+      PARAMETER (MAXIMP = 9200, MAXNB = 17200, MAXPAD = 8160,
+     &           MAXRES = 14000)
+C...##IF MCSS
+C...##ELSE
+      PARAMETER (MAXSEG = 1000)
+C...##ENDIF
+C..##ELIF SMALL
+C..##ELIF XSMALL
+C..##ELIF REDUCE
+C..##ELSE
+C..##ENDIF
+C..##IF NOIMAGES
+C..##ELSE
+      PARAMETER (MAXAIM = 2*SIZE)
+      PARAMETER (MAXGRP = 2*SIZE/3)
+C..##ENDIF
+      INTEGER REDMAX,REDMX2
+C..##IF REDUCE
+C..##ELSE
+      PARAMETER (REDMAX = 20)
+      PARAMETER (REDMX2 = 80)
+C..##ENDIF
+      INTEGER MXRTRS, MXRTA, MXRTB, MXRTT, MXRTP, MXRTI, MXRTX,
+     &        MXRTHA, MXRTHD, MXRTBL, NICM
+      PARAMETER (MXRTRS = 200, MXRTA = 5000, MXRTB = 5000,
+     &           MXRTT = 5000, MXRTP = 5000, MXRTI = 2000,
+     &           MXRTX = 5000, MXRTHA = 300, MXRTHD = 300,
+     &           MXRTBL = 5000, NICM = 10)
+      INTEGER NMFTAB,  NMCTAB,  NMCATM,  NSPLIN
+C..##IF REDUCE
+C..##ELSE
+      PARAMETER (NMFTAB = 200, NMCTAB = 3, NMCATM = 12000, NSPLIN = 3)
+C..##ENDIF
+      INTEGER MAXSHK
+C..##IF XSMALL
+C..##ELIF REDUCE
+C..##ELSE
+      PARAMETER (MAXSHK = SIZE*3/4)
+C..##ENDIF
+      INTEGER SCRMAX
+C..##IF IBM IBMRS CRAY INTEL IBMSP T3D REDUCE
+C..##ELSE
+      PARAMETER (SCRMAX = 5000)
+C..##ENDIF
+C..##IF TSM
+      INTEGER MXPIGG
+C...##IF REDUCE
+C...##ELSE
+      PARAMETER (MXPIGG=500)
+C...##ENDIF
+      INTEGER MXCOLO,MXPUMB
+      PARAMETER (MXCOLO=20,MXPUMB=20)
+C..##ENDIF
+C..##IF ADUMB
+      INTEGER MAXUMP, MAXEPA, MAXNUM
+C...##IF REDUCE
+C...##ELSE
+      PARAMETER (MAXUMP = 10, MAXNUM = 4)
+C...##ENDIF
+C..##ENDIF
+      INTEGER MAXING
+      PARAMETER (MAXING=1000)
+C..##IF MMFF
+      integer MAX_RINGSIZE, MAX_EACH_SIZE
+      parameter (MAX_RINGSIZE = 20, MAX_EACH_SIZE = 1000)
+      integer MAXPATHS
+      parameter (MAXPATHS = 8000)
+      integer MAX_TO_SEARCH
+      parameter (MAX_TO_SEARCH = 6)
+C..##ENDIF
+C-----------------------------------------------------------------------
+C-----------------------------------------------------------------------
+C:::##INCLUDE '~/charmm_fcm/exfunc.fcm'
+C..##IF ACE
+C..##ENDIF
+C..##IF ADUMB
+C..##ENDIF
+      CHARACTER*4 GTRMA, NEXTA4, CURRA4
+      CHARACTER*6 NEXTA6
+      CHARACTER*8 NEXTA8
+      INTEGER     ALLCHR, ALLSTK, ALLHP, DECODI, FIND52,
+     *            GETATN, GETRES, GETRSN, GETSEG, GTRMI, I4VAL,
+     *            ICHAR4, ICMP16, ILOGI4, INDX, INDXA, INDXAF,
+     *            INDXRA, INTEG4, IREAL4, IREAL8, LOCDIF,
+     *            LUNASS, MATOM, NEXTI, NINDX, NSELCT, NSELCTV, ATMSEL,
+     *            PARNUM, PARINS,
+     *            SRCHWD, SRCHWS, STRLNG, DSIZE, SSIZE
+C..##IF ACE
+     *           ,GETNNB
+C..##ENDIF
+      LOGICAL     CHKPTR, EQST, EQSTA, EQSTWC, EQWDWC, DOTRIM, CHECQUE,
+     *            HYDROG, INITIA, LONE, LTSTEQ, ORDER, ORDER5,
+     *            ORDERR, USEDDT, QTOKDEL, QDIGIT, QALPHA
+      REAL*8      DECODF, DOTVEC, GTRMF, LENVEC, NEXTF, RANDOM, GTRR8,
+     *            RANUMB, R8VAL, RETVAL8, SUMVEC
+C..##IF ADUMB
+     *           ,UMFI
+C..##ENDIF
+      EXTERNAL  GTRMA, NEXTA4, CURRA4, NEXTA6, NEXTA8,
+     *          ALLCHR, ALLSTK, ALLHP, DECODI, FIND52,
+     *          GETATN, GETRES, GETRSN, GETSEG, GTRMI, I4VAL,
+     *          ICHAR4, ICMP16,  ILOGI4, INDX, INDXA, INDXAF,
+     *          INDXRA, INTEG4, IREAL4, IREAL8, LOCDIF,
+     *          LUNASS, MATOM, NEXTI, NINDX, NSELCT, NSELCTV, ATMSEL,
+     *          PARNUM, PARINS,
+     *          SRCHWD, SRCHWS, STRLNG, DSIZE, SSIZE,
+     *          CHKPTR, EQST, EQSTA, EQSTWC, EQWDWC, DOTRIM, CHECQUE,
+     *          HYDROG, INITIA, LONE, LTSTEQ, ORDER, ORDER5,
+     *          ORDERR, USEDDT, QTOKDEL, QDIGIT, QALPHA,
+     *          DECODF, DOTVEC, GTRMF, LENVEC, NEXTF, RANDOM, GTRR8,
+     *          RANUMB, R8VAL, RETVAL8, SUMVEC
+C..##IF ADUMB
+     *           ,UMFI
+C..##ENDIF
+C..##IF ACE
+     *           ,GETNNB
+C..##ENDIF
+C..##IFN NOIMAGES
+      INTEGER IMATOM
+      EXTERNAL IMATOM
+C..##ENDIF
+C..##IF MBOND
+C..##ENDIF
+C..##IF MMFF
+      INTEGER LEN_TRIM
+      EXTERNAL LEN_TRIM
+      CHARACTER*4 AtName
+      external AtName
+      CHARACTER*8 ElementName
+      external ElementName
+      CHARACTER*10 QNAME
+      external QNAME
+      integer  IATTCH, IBORDR, CONN12, CONN13, CONN14
+      integer  LEQUIV, LPATH
+      integer  nbndx, nbnd2, nbnd3, NTERMA
+      external IATTCH, IBORDR, CONN12, CONN13, CONN14
+      external LEQUIV, LPATH
+      external nbndx, nbnd2, nbnd3, NTERMA
+      external find_loc
+      real*8   vangle, OOPNGL, TORNGL, ElementMass
+      external vangle, OOPNGL, TORNGL, ElementMass
+C..##ENDIF
+C-----------------------------------------------------------------------
+C
+C-----------------------------------------------------------------------
+C:::##INCLUDE '~/charmm_fcm/code.fcm'
+      INTEGER ICB, ICT, ICP, ICI
+      COMMON /CODE/ ICB(MAXB), ICT(MAXT), ICP(MAXP), ICI(MAXIMP)
+      LOGICAL MUSTUP
+      COMMON/LCODE/MUSTUP
+C..##IF SAVEFCM
+C..##ENDIF
+C-----------------------------------------------------------------------
+C-----------------------------------------------------------------------
+C:::##INCLUDE '~/charmm_fcm/bases.fcm'
+      INTEGER BASELN
+      PARAMETER (BASELN=50)
+      INTEGER  BNBND,LNBND,BIMAG,LIMAG,BNBNDC,LNBNDC,
+     &         BINTCR,LINTCR,BINTCS,LINTCS,
+     &         BNBNDP, LNBNDP, BNBNDR, LNBNDR, BIMAGC, LIMAGC,
+     &         BIMAGP, LIMAGP, BIMAGR, LIMAGR,
+     &         BPERTD,LPERTD,BPPSF0,LPPSF0,BPRES0,LPRES0
+      COMMON /BASES/ BNBND(BASELN), LNBND(BASELN),
+     $               BIMAG(BASELN), LIMAG(BASELN),
+     &               BNBNDC(BASELN),LNBNDC(BASELN),
+     &               BINTCR(BASELN),LINTCR(BASELN),
+     &               BINTCS(BASELN),LINTCS(BASELN),
+     &               BNBNDP(BASELN),LNBNDP(BASELN),
+     &               BNBNDR(BASELN),LNBNDR(BASELN),
+     &               BIMAGC(BASELN),LIMAGC(BASELN),
+     &               BIMAGP(BASELN),LIMAGP(BASELN),
+     &               BIMAGR(BASELN),LIMAGR(BASELN),
+     &               BPERTD(BASELN),LPERTD(BASELN),
+     &               BPPSF0(BASELN),LPPSF0(BASELN),
+     &               BPRES0(BASELN),LPRES0(BASELN)
+C..##IF SAVEFCM
+C..##ENDIF
+C-----------------------------------------------------------------------
+C-----------------------------------------------------------------------
+C:::##INCLUDE '~/charmm_fcm/coord.fcm'
+      REAL*8 X,Y,Z,WMAIN
+      COMMON /COORD/ X(MAXAIM),Y(MAXAIM),Z(MAXAIM),WMAIN(MAXAIM)
+C..##IF SAVEFCM
+C..##ENDIF
+C-----------------------------------------------------------------------
+C-----------------------------------------------------------------------
+C:::##INCLUDE '~/charmm_fcm/coordc.fcm'
+      REAL*8 XCOMP,YCOMP,ZCOMP,WCOMP
+      COMMON /COORDC/ XCOMP(MAXA),YCOMP(MAXA),ZCOMP(MAXA),
+     1     WCOMP(MAXA)
+C..##IF SAVEFCM
+C..##ENDIF
+C-----------------------------------------------------------------------
+C-----------------------------------------------------------------------
+C:::##INCLUDE '~/charmm_fcm/noe.fcm'
+C..##IFN NOMISC (noe_fcm)

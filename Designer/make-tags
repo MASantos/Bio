@@ -1,0 +1,19 @@
+#!/bin/csh
+#
+set hmd="`pwd`"
+set SRC="../../source"
+set srcl=(adumb      charmm     dynamc     gamint     image      manip      minmiz     moldyn     pert       shapes     vibran)
+set srcl=($srcl cadint     correl     energy     gener      io         mbond      misc       molvib     quantum    solvation )
+set srcl=($srcl cff        dimb       fcm        graphics   machdep    mc         mmff       nbonds     rxncor     util)
+
+if(! -s designer.cc ) then
+ echo "It must be ran within directory containing designer.cc"
+ exit
+endif
+
+ls *.cc *.h | ctags -L -
+
+echo $SRC | ctags -a -L - -R --langmap=Fortran:+.fcm+.inc+.INC+.src  
+
+
+

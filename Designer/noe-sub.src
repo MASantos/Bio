@@ -1,0 +1,325 @@
+      SUBROUTINE NOECNS(EN,DX,DY,DZ,X,Y,Z,QECONT,ECONT,
+     &                  NOENUM,NOESCA,NOEIPT,NOEJPT,NOEINM,
+     &                  NOEJNM,NOELIS,NOEEXP,NOERMN,
+     &                  NOEKMN,NOERMX,NOEKMX,NOEFMX,
+     &                  NOETCN,NOEAVE,DD1,IUPT,QSECD
+##IF PNOE
+     &                  ,QPNOE, C0X, C0Y, C0Z)
+##ELSE
+     &                  )
+##ENDIF
+C
+C Routine computes force field for NOE constraints
+C
+C C   in [KCAL/(MOL*A**2)],  d in [A] units.
+C  IJ
+C
+C original author: Axel Brunger
+C Overhauled by B. Brooks  Sept-1987
+C
+##INCLUDE '~/charmm_fcm/impnon.fcm'
+##INCLUDE '~/charmm_fcm/number.fcm'
+##INCLUDE '~/charmm_fcm/dimens.fcm'
+C
+C I/O
+      REAL*8 EN
+      REAL*8 DX(*),DY(*),DZ(*),X(*),Y(*),Z(*)
+      LOGICAL QECONT
+      REAL*8 ECONT(*)
+      INTEGER NOENUM
+      REAL*8 NOESCA
+      INTEGER NOEIPT(*), NOEJPT(*), NOEINM(*), NOEJNM(*), NOELIS(*)
+      REAL*8 NOEEXP(*)
+      REAL*8 NOERMN(*), NOEKMN(*), NOERMX(*), NOEKMX(*), NOEFMX(*)
+      REAL*8 NOETCN(*), NOEAVE(*)
+      REAL*8 DD1(*)
+      INTEGER IUPT(*)
+      LOGICAL QSECD
+##IF PNOE
+      LOGICAL QPNOE
+      REAL*8  c0x, c0y, c0z
+##ENDIF
+C
+##INCLUDE '~/charmm_fcm/reawri.fcm'
+##IF DIMB
+##INCLUDE '~/charmm_fcm/heap.fcm'
+##INCLUDE '~/charmm_fcm/dimb.fcm'
+##ENDIF ! DIMB
+C
+##IF GENETIC
+##INCLUDE '~/charmm_fcm/galgor.fcm'
+      integer istart
+##ENDIF
+##IF FOURD (4ddecl)
+C 4D varibles:
+##INCLUDE '~/charmm_fcm/fourd.fcm'
+      REAL*8 FDIJ,RFD
+##ENDIF (4ddecl)
+C
+C local
+      REAL*8 XIJ,YIJ,ZIJ,SIJ,RIJ,EIJ,DF,DEL,RLIM,DDF,DFA
+      REAL*8 RX,RY,RZ,A,RIJU,AEXP,ATOT
+      INTEGER I,J,N,II,JJ,IADD,NIJ
+      INTEGER NWARN
+C begin
+      NWARN=0
+C
+##IF GENETIC
+      istart = 1
+      if(qgalgor) then
+      istart=int(EN)
+      endif
+      EN=0.
+      DO N=istart, NOENUM
+##ELSE
+      EN=0.
+      DO N=1,NOENUM
+##ENDIF
+C
+C DEBUGGING: Miguel A. Santos, HSC, Toronto, 2006
+C      if(qsecd) then
+C        write(*,*) 'QSECD is TUE'
+C      else
+C        write(*,*) 'QSECD is FALSE'
+C      endif
+C
+C loop over all pairs of atoms belonging to constraint N
+
+         ATOT=ZERO
+         AEXP=HALF/NOEEXP(N)
+         NIJ=0
+         DO II=1,NOEINM(N)
+            I=NOELIS(NOEIPT(N)+II-1)
+##IF PNOE
+               if(qpnoe) then
+               rx=x(i)-c0x
+               ry=y(i)-c0y
+               rz=z(i)-c0z
+               SIJ=RX*RX+RY*RY+RZ*RZ
+               ATOT=ATOT+SIJ**AEXP
+               NIJ=NIJ+1
+               else
+##ENDIF
+            DO JJ=1,NOEJNM(N)
+               J=NOELIS(NOEJPT(N)+JJ-1)
+               RX=X(I)-X(J)
+               RY=Y(I)-Y(J)
+               RZ=Z(I)-Z(J)
+               SIJ=RX*RX+RY*RY+RZ*RZ
+##IF FOURD
+               IF(DIM4) THEN
+                  RFD=FDIM(I)-FDIM(J)
+                  SIJ=SIJ+RFD*RFD
+               ENDIF
+##ENDIF
+               ATOT=ATOT+SIJ**AEXP
+               NIJ=NIJ+1
+            ENDDO
+##IF PNOE
+               endif
+##ENDIF
+         ENDDO
+         ATOT=ATOT/NIJ
+         RIJ=ATOT**NOEEXP(N)
+C
+C Compute energies
+C
+         DF=0.0
+         EIJ=0.0
+         DDF=0.0
+C
+C compute contributions for distances too close.
+         IF(RIJ.LT.NOERMN(N)) THEN
+            DEL=RIJ-NOERMN(N)
+            DF=NOESCA*NOEKMN(N)*DEL
+            EIJ=0.5*NOESCA*NOEKMN(N)*DEL*DEL
+            DDF=NOESCA*NOEKMN(N)
+         ENDIF
+C
+C Average RIJ if requested
+         RIJU=RIJ
+         IF(NOETCN(N).GT.ZERO) THEN
+            DEL=DELTA
+            IF(DEL.LE.ZERO) DEL=PT001
+            NOEAVE(N)=(NOEAVE(N)*(NOETCN(N)-DEL)+DEL/RIJ**3)/NOETCN(N)
+            RIJU=NOEAVE(N)**(-THIRD)
+         ENDIF
+C
+C compute contributions for interactions that are too far
+         IF(RIJU.GE.NOERMX(N)) THEN
+            DEL=RIJU-NOERMX(N)
+            DF=DF+NOESCA*NOEKMX(N)*DEL
+            EIJ=EIJ+0.5*NOESCA*NOEKMX(N)*DEL*DEL
+            DDF=DDF+NOESCA*NOEKMX(N)
+         ENDIF
+C
+C correct far interactions for maximum force allowed
+         IF(NOEKMX(N).GT.0.0) THEN
+            RLIM=NOERMX(N)+NOEFMX(N)/NOEKMX(N)
+         ELSE
+            RLIM=9999.0
+         ENDIF
+         IF(RIJU.GT.RLIM) THEN
+            DEL=RIJU-RLIM
+            DF=DF-NOESCA*NOEKMX(N)*DEL
+            EIJ=EIJ-0.5*NOESCA*NOEKMX(N)*DEL*DEL
+            DDF=DDF-NOESCA*NOEKMX(N)
+         ENDIF
+C
+         DFA=DF*RIJ/(ATOT*NIJ)
+C
+         AEXP=HALF/NOEEXP(N)-ONE
+         DO II=1,NOEINM(N)
+            I=NOELIS(NOEIPT(N)+II-1)
+##IF PNOE
+               if(qpnoe) then
+               rx=x(i)-c0x
+               ry=y(i)-c0y
+               rz=z(i)-c0z
+               SIJ=RX*RX+RY*RY+RZ*RZ
+               A=SIJ**AEXP
+C
+               XIJ=A*RX*DFA
+               YIJ=A*RY*DFA
+               ZIJ=A*RZ*DFA
+C accumulate total derivatives
+               DX(I)=DX(I)+XIJ
+               DY(I)=DY(I)+YIJ
+               DZ(I)=DZ(I)+ZIJ
+               else
+##ENDIF
+            DO JJ=1,NOEJNM(N)
+               J=NOELIS(NOEJPT(N)+JJ-1)
+               RX=X(I)-X(J)
+               RY=Y(I)-Y(J)
+               RZ=Z(I)-Z(J)
+               SIJ=RX*RX+RY*RY+RZ*RZ
+##IF FOURD
+               IF(DIM4) THEN
+                  RFD=FDIM(I)-FDIM(J)
+                  SIJ=SIJ+RFD*RFD
+               ENDIF
+##ENDIF
+               A=SIJ**AEXP
+C
+               XIJ=A*RX*DFA
+               YIJ=A*RY*DFA
+               ZIJ=A*RZ*DFA
+C accumulate total derivatives
+               DX(I)=DX(I)+XIJ
+               DX(J)=DX(J)-XIJ
+               DY(I)=DY(I)+YIJ
+               DY(J)=DY(J)-YIJ
+               DZ(I)=DZ(I)+ZIJ
+               DZ(J)=DZ(J)-ZIJ
+##IF FOURD
+               IF(DIM4) THEN
+                  FDIJ=A*RFD*DFA
+                  DFDIM(I)=DFDIM(I)+FDIJ
+                  DFDIM(J)=DFDIM(J)-FDIJ
+               ENDIF
+##ENDIF
+            ENDDO
+##IF PNOE
+            endif
+##ENDIF
+         ENDDO
+C
+         EN=EN+EIJ
+C
+         IF(QECONT) THEN
+            EIJ=EIJ*HALF
+            DO II=1,NOEINM(N)
+               I=NOELIS(NOEIPT(N)+II-1)
+               ECONT(I)=ECONT(I)+EIJ/NOEINM(N)
+            ENDDO
+            DO JJ=1,NOEJNM(N)
+               J=NOELIS(NOEJPT(N)+JJ-1)
+               ECONT(J)=ECONT(J)+EIJ/NOEJNM(N)
+            ENDDO
+         ENDIF
+C
+C second derivative part
+         IF(QSECD) THEN
+            IF(NIJ.NE.1) THEN
+               NWARN=NWARN+1
+            ELSE
+C
+               DF=DF/RIJ
+               DDF=(DDF-DF)/SIJ
+C
+##IF DIMB (dimbcmp)
+               IF(QCMPCT) THEN
+                  CALL NOECMP(I,J,RX,RY,RZ,DF,DDF,DD1,
+     1                        HEAP(PINBCM),HEAP(PJNBCM))
+               ELSE
+##ENDIF (dimbcmp)
+C
+               IF(J.LT.I) THEN
+                  JJ=3*I-2
+                  II=3*J-2
+               ELSE
+                  JJ=3*J-2
+                  II=3*I-2
+               ENDIF
+C
+               A=RX*RX*DDF+DF
+               IADD=IUPT(II)+JJ
+               DD1(IADD)=DD1(IADD)-A
+               IADD=IUPT(II)+II
+               DD1(IADD)=DD1(IADD)+A
+               IADD=IUPT(JJ)+JJ
+               DD1(IADD)=DD1(IADD)+A
+C
+               A=RY*RY*DDF+DF
+               IADD=IUPT(II+1)+JJ+1
+               DD1(IADD)=DD1(IADD)-A
+               IADD=IUPT(II+1)+II+1
+               DD1(IADD)=DD1(IADD)+A
+               IADD=IUPT(JJ+1)+JJ+1
+               DD1(IADD)=DD1(IADD)+A
+C
+               A=RZ*RZ*DDF+DF
+               IADD=IUPT(II+2)+JJ+2
+               DD1(IADD)=DD1(IADD)-A
+               IADD=IUPT(II+2)+II+2
+               DD1(IADD)=DD1(IADD)+A
+               IADD=IUPT(JJ+2)+JJ+2
+               DD1(IADD)=DD1(IADD)+A
+C
+               A=RX*RY*DDF
+               IADD=IUPT(II)+JJ+1
+               DD1(IADD)=DD1(IADD)-A
+               IADD=IUPT(II+1)+JJ
+               DD1(IADD)=DD1(IADD)-A
+               IADD=IUPT(II)+II+1
+               DD1(IADD)=DD1(IADD)+A
+               IADD=IUPT(JJ)+JJ+1
+               DD1(IADD)=DD1(IADD)+A
+C
+               A=RX*RZ*DDF
+               IADD=IUPT(II)+JJ+2
+               DD1(IADD)=DD1(IADD)-A
+               IADD=IUPT(II+2)+JJ
+               DD1(IADD)=DD1(IADD)-A
+               IADD=IUPT(II)+II+2
+               DD1(IADD)=DD1(IADD)+A
+               IADD=IUPT(JJ)+JJ+2
+               DD1(IADD)=DD1(IADD)+A
+C
+               A=RY*RZ*DDF
+               IADD=IUPT(II+1)+JJ+2
+               DD1(IADD)=DD1(IADD)-A
+               IADD=IUPT(II+2)+JJ+1
+               DD1(IADD)=DD1(IADD)-A
+               IADD=IUPT(II+1)+II+2
+               DD1(IADD)=DD1(IADD)+A
+               IADD=IUPT(JJ+1)+JJ+2
+               DD1(IADD)=DD1(IADD)+A
+##IF DIMB (dimbendif)
+               ENDIF
+##ENDIF (dimbendif)
+            ENDIF
+         ENDIF
+C
+      ENDDO
